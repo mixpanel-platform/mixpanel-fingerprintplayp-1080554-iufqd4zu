@@ -7,9 +7,86 @@
     <script src="https://cdn.mxpnl.com/libs/mixpanel-platform/build/mixpanel-platform.v0.latest.min.js"></script>
   </head>
   <body class="mixpanel-platform-body">
-    <h1>Hello, World!</h1>
-    <script>
-      // Run queries and display results here
+    <img height="100%" width="100%" src="https://raw.githubusercontent.com/mixpanel-platform/mixpanel-hidden-pictures--784715-itaoqrce/master/no_alias_img.png" /><br clear="all" /><br clear="all" />
+    
+    <div id="results"><img src="https://g4cap.jrc.ec.europa.eu/g4cap/images/loading.gif" /></div>
+    
+    <script id="jql">
+    /* JQL query goes here */
+    function main() {
+      return join(
+        Events({
+          from_date: "2016-01-01",
+          to_date: "2016-09-19",
+        }),
+        People()
+      )
+      .filter(function(tup){
+        return tup.event && tup.user;
+      })
+      .groupByUser(function(state, tups){
+        state = state || {
+          'install_only':true,
+        };
+        _.each(tups, function(tup){
+         if(tup.event.name !== 'install'){
+           state.install_only = false;
+         }
+         if(tup.user.properties.$ios_ifa){
+           state.ios_ifa = tup.user.properties.$ios_ifa;
+         }
+        });
+        return state;
+      });
+    }
     </script>
+    
+    <script>
+    var script = $('#jql').html();
+    script = $.trim(script);
+    //console.log(script);
+    var params = {};
+    MP.api.jql(script,params).done(function(results) {
+      var install_only_ids = {};
+      var ifa_to_distinct_id = {};
+      var final_ids = [];
+      var ifas_without = []
+      
+      // For each result, take down a list of the "bad profiles" (only install)
+      _.each(results, function(result){
+        if(result.value.install_only){
+          install_only_ids[result.key[0]] = 1;
+        }
+      });
+      
+      // Go through all results again
+      _.each(results, function(result){
+        // if there is an iOS IFA in the prof...
+        if(result.value.ios_ifa){
+          ifa_to_distinct_id[result.value.ios_ifa] = result.key[0];
+          // see if it exists in the "bad profile" list generated in the last loop... if so, add it to the final output
+          if(install_only_ids[result.value.ios_ifa]){
+            // mixpanel.identify(result.value.ios_ifa);
+            // mixpanel.people.set({"to_delete":true});
+            final_ids.push(result.value.ios_ifa);
+          }else{
+            ifas_without.push(result.value.ios_ifa);
+          }
+        }
+      })
+      //console.log(final_ids);
+      // console.log(Object.keys(install_only_ids).length);
+      console.log(final_ids.length);
+      //console.log(ifas_without);
+      var base_url = "https://mixpanel.com/report/784715/explore/#user?distinct_id=";
+      document.getElementById('results').innerHTML  = "";
+      for(var i = 0; i < 100; i++){
+        document.getElementById('results').innerHTML += "<a href='"+base_url+final_ids[i]+"' target='_blank'>Ghost Profile</a>";
+        document.getElementById('results').innerHTML += "&nbsp;&nbsp;<-->&nbsp;&nbsp;<a href='"+base_url+ifa_to_distinct_id[final_ids[i]]+"' target='_blank'>Live Profile (w/ IFA)</a><br /><br />";
+      }
+
+    });
+    </script>
+
   </body>
 </html>
