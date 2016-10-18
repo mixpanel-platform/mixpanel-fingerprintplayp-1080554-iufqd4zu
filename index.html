@@ -52,7 +52,7 @@
       var final_ids = [];
       var ifas_without = []
       
-      // For each result, take down a list of the "bad profiles" (only install)
+      // For each result, take down a list of the "bad profiles" distinct IDs (only install)
       _.each(results, function(result){
         if(result.value.install_only){
           install_only_ids[result.key[0]] = 1;
@@ -80,7 +80,7 @@
       //console.log(ifas_without);
       var base_url = "https://mixpanel.com/report/784715/explore/#user?distinct_id=";
       document.getElementById('results').innerHTML  = "";
-      for(var i = 0; i < 100; i++){
+      for(var i = 0; i < final_ids.length; i++){
         document.getElementById('results').innerHTML += "<a href='"+base_url+final_ids[i]+"' target='_blank'>Ghost Profile</a>";
         document.getElementById('results').innerHTML += "&nbsp;&nbsp;<-->&nbsp;&nbsp;<a href='"+base_url+ifa_to_distinct_id[final_ids[i]]+"' target='_blank'>Live Profile (w/ IFA)</a><br /><br />";
       }
